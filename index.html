@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+    
+    <link
+        rel="stylesheet"
+        href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+        crossorigin="anonymous"
+    />
+    <title>Livestream Gidi Traffic</title>
+</head>
+<body class="bg-light text-black">
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">Gidi Updates</span>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-6">
+                <h1 class="text-center mb-3">
+                    Send Live Report
+                </h1>
+                <form id="form">
+                    <div class="form-group">
+                        <input 
+                            type="text"
+                            id="update-text"
+                            class="form-control bg-light text-black"
+                            placeholder="What's going on in your zones..."
+                            maxlength="30"
+                            required
+                        />
+                    </div>
+                    <div class="form-group">
+                        <input 
+                            type="text"
+                            id="update-location"
+                            class="form-control bg-light text-black"
+                            placeholder="Drop a location ASAP..."
+                            maxlength="30"
+                            required
+                        />
+                    </div>
+                    <div class="form-group">
+                        <input 
+                            type="text"
+                            id="update-observer"
+                            class="form-control bg-light text-black"
+                            placeholder="Your name or alias"
+                            maxlength="20"
+                            required    
+                        />
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Report
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <div id="updates">
+                    <!-- <div class="card bg-light my-3">
+                        <div class="card-body">
+                            <p class="lead">
+                                Local Boys on the streets... <span class="glyphicon glyphicon-map-marker"></span><strong> (Isreal Adesanya)</strong>
+                                <br/>
+                                <em>Submitted by John Stamos</em>
+                                <br/>
+                                <small>2:05:10</small>
+                            </p>
+                        </div>
+                    </div> -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/@feathersjs/client@^4.3.0/dist/feathers.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+
+    <script>
+        // Socket.io Setup
+        const socket = io('http://localhost:3030');
+
+        // init feathers app
+        const app = feathers();
+
+        // register socket.io to talk to server
+        app.configure(feathers.socketio(socket));
+
+        document.getElementById('form').addEventListener('submit', sendUpdate);
+
+        async function sendUpdate(e){
+            e.preventDefault();
+
+            const text = document.getElementById('update-text');
+            const location = document.getElementById('update-location');
+            const observer = document.getElementById('update-observer');
+
+            // Create new report
+            app.service('updates').create({
+                text: text.value,
+                location: location.value,
+                observer: observer.value
+            });
+
+            // clear inputs
+            text.value = '';
+            location.value = '';
+            observer.value = '';
+        }
+
+        function showUpdate(update){
+            document.getElementById('updates').innerHTML += `<div class="card bg-light my-3">
+                        <div class="card-body">
+                            <p class="lead">
+                                ${update.text} <span class="glyphicon glyphicon-map-marker"></span><strong> (${update.location})</strong>
+                                <br/>
+                                <em>Submitted by ${update.observer}</em>
+                                <br/>
+                                <small>${update.time}</small>
+                            </p>
+                        </div>
+                    </div>`;
+        }
+
+        async function init(){
+            // find updates
+            const updates = await app.service('updates').find();
+
+            // Add existing ideas to list
+            updates.forEach(showUpdate);
+
+            // Add update in realtime
+            app.service('updates').on('created', showUpdate);
+        }
+
+        init();
+    </script>
+</body>
+</html>
